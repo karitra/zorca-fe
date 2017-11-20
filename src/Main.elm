@@ -3,19 +3,15 @@ import Html.Attributes exposing(href, class, style)
 
 import Http
 
--- import Json.Decode as Decode
-import Json.Decode exposing(..)
-import Json.Decode.Pipeline exposing (decode, required)
-
 import Time exposing (Time, second)
 
 import Dict exposing(..)
 
 import Navigation exposing(Location)
 
+import Bootstrap.Card as Card
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Grid as Grid
--- import Bootstrap.Color as Color
 
 import Orca exposing(..)
 import Apps exposing(..)
@@ -27,7 +23,7 @@ poll_interval_sec = 10
 -- Model
 
 type alias Model = {
-    content: String,
+    -- content: String,
     cnt: Int,
     pod: Maybe OrcasPod,
     apps: Maybe Apps,
@@ -61,7 +57,7 @@ update msg model =
         NewPod (Ok pod) ->
             let _ = Debug.log "get pod" pod
             in
-            ({model | pod = Just pod}, Cmd.none)
+            ({model | pod = pod}, Cmd.none)
         NewPod (Err e) ->
             let _ = Debug.log "err" e
             in
@@ -69,7 +65,7 @@ update msg model =
         NewApps (Ok apps) ->
             let _ = Debug.log "get apps" apps
             in
-            ({model | apps = Just apps}, Cmd.none)
+            ({model | apps = apps}, Cmd.none)
         NewApps (Err e) ->
             let _ = Debug.log "err" e
             in
@@ -99,21 +95,20 @@ subscriptions model =
 -- View
 
 view model =
-    -- let row_opt = Grid.attrs []
-    -- in
-    Grid.containerFluid [style [("width", "100%")]]
+    Grid.container []
         [
-            Grid.row [] [Grid.col [] [   navbar model] ],
-            Grid.row [] [Grid.col [] [main_view model] ]
+            Grid.simpleRow [Grid.col [] [   navbar model] ],
+            Grid.simpleRow [Grid.col [] [main_view model] ]
         ]
 
 navbar model =
     Navbar.config NavMsg
         |> Navbar.attrs [
-            class "bg-dark",
-            class "navbar-dark",
-            class "navbar-collapse-sm" ]
-            -- class "fixed-top"]
+                class "bg-dark",
+                class "navbar-dark",
+                class "navbar-collapse-sm",
+                class "container-fullwidth"
+            ]
         |> Navbar.brand [ href "#" ] [ text "z-Orca" ]
         |> Navbar.items
             [ Navbar.itemLink [ href "#cluster" ] [ text "Cluster" ]
@@ -127,18 +122,41 @@ navbar model =
 main_view model =
     Grid.container []
     [
-        text (toString model.cnt)
+        -- text (toString model.cnt),
+        display_pod model.pod
     ]
+
+
+display_pod pod =
+    let
+        display_orca (k, v) =
+            -- Grid.row [] [
+            --     Grid.col [] [
+                    Card.config [ Card.outlinePrimary ]
+                        |> Card.headerH3 [] [ text k ]
+                        |> Card.block [] [
+                            Card.text [] [ "version " ++ v.orca.info.version |> text ],
+                            Card.text [] [ "uuid " ++ v.orca.info.uuid       |> text ],
+                            Card.text [] [ "uptime " ++ (toString v.orca.info.uptime) |> text ]
+                        ]
+                        -- |> Card.view
+            --     ]
+            -- ]
+        deck =
+            (Dict.toList pod |> List.map display_orca |> Card.columns)
+    in
+        Grid.container [] [deck]
+
 
 -- Main
 
 main =
     let (nav_state, cmd) = Navbar.initialState NavMsg in
     let model = {
-        content = "init",
+        -- content = "init",
         cnt = 0,
-        pod = Nothing,
-        apps = Nothing,
+        pod = Dict.empty,
+        apps = Dict.empty,
         nav_state = nav_state }
     in
     Html.program
